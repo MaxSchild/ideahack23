@@ -8,7 +8,7 @@ import motor.motor_asyncio
 
 
 app = FastAPI()
-
+"""
 username = "mongo"
 password = "mongo"
 mongo_db_connection_string = "mongodb+srv://" \
@@ -37,7 +37,17 @@ async def root():
 
     return {"message": "Hello World"}
 
-
+"""
 @app.get("/hello/{name}")
 async def say_hello(name: str):
     return {"message": f"Hello {name}"}
+
+@app.get("request_credit")
+async def reqest_credit():
+
+    return 200
+
+@app.post("bid_on_auction")
+async def bid_on_auction(id: str):
+    return 200
+
