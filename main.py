@@ -1,8 +1,8 @@
-import certifi as certifi
-import motor as motor
+#import certifi as certifi
+#import motor as motor
 #import pymongo as pymongo
 from fastapi import FastAPI
-import motor.motor_asyncio
+#import motor.motor_asyncio
 
 
 
