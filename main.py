@@ -1,53 +1,48 @@
-#import certifi as certifi
-#import motor as motor
-#import pymongo as pymongo
 from fastapi import FastAPI
-#import motor.motor_asyncio
-
-
-
+import requests
+from multiprocess import Process
+import certifi
+import motor
+import motor.motor_asyncio
+from bson import ObjectId
+from random import choice
 
 app = FastAPI()
-"""
-username = "mongo"
-password = "mongo"
+
+username = "ideahack_2023" #"mongo"
+password = "ideahack_2023"
 mongo_db_connection_string = "mongodb+srv://" \
-                             "{username}:{password}@cluster0.gvyd35q.mongodb.net/?retryWrites=true" \
-                             "&w=majority".format(username=username, password=password)
-#client = pymongo.MongoClient(mongo_db_connection_string)
+                             "{username}:{password}@cluster0.6wlzcsu.mongodb.net".format(username=username, password=password)
 
-#client = motor.motor_asyncio.AsyncIOMotorClient(os.environ["MONGODB_URL"])
-
-#trying somehting new
-#tlsCAFile=certifi.where()
-#client = motor.motor_asyncio.AsyncIOMotorClient(mongo_db_connection_string)
 client = motor.motor_asyncio.AsyncIOMotorClient(mongo_db_connection_string, tlsCAFile=certifi.where())
-db = client.sample_training
+db = client.debt24
 
-@app.get("/")
-async def root():
+print(db.list_collection_names())
+# hardcoded for demonstrational purposes:
+# bidwinner_entry_filter = { "_id": ObjectId("651f981f9404c50bc36d243b") }
+object_id = "651f981f9404c50bc36d243b"
 
-    #db = client.sample_training
-    #collection = await db.companies
-    #entry = await collection.find_one()
-    #entry = await db["students"].find_one().to_list(1000)
-    #entry = await db["companies"].find_one()
-    entry = await db["companies"].find().to_list(1000)
-    print(entry)
+n_lenders = 3
 
-    return {"message": "Hello World"}
+def notify_nth_lender(n, amount, use_case, loan_time):
+    url = f"https://ideahack2023-bank-c90e27b6acbe.herokuapp.com/{n}?amount={amount}&use_case={use_case}&loan_time={loan_time}"
+    response = requests.post(url)
+    return response.json()['interest_rate']
 
-"""
-@app.get("/hello/{name}")
-async def say_hello(name: str):
-    return {"message": f"Hello {name}"}
+def auction_process(amount, use_case, loan_time):
+    result = [notify_nth_lender(i, amount, use_case, loan_time) for i in range(n_lenders)]
+    candidates = [i for i, c in enumerate(result) if c == min(result)]
+    candidate = choice(candidates)
+    print(db['offers'].update_one({"new_id": 0 }, {"$set": { "bidwinner": candidate } }))
 
-@app.get("request_credit")
-async def reqest_credit():
-
+@app.post("/request_credit")
+async def request_credit(amount :int, use_case :str, loan_time :int):
+    print(f"user request for {amount}$ credit (number of installments: {loan_time} months, purpose: {use_case}")
+    Process(target=auction_process, args=(amount,use_case,loan_time)).start()
     return 200
 
-@app.post("bid_on_auction")
-async def bid_on_auction(id: str):
-    return 200
+@app.get("/auction_status")
+async def auction_status():
+    offer = await db['offers'].find_one({ "new_id": 0 })
+    return { 'offer' : offer['bidwinner']  }
 
